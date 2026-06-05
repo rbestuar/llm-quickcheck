@@ -26,20 +26,33 @@ A local LLM benchmarking tool for developers and homelab operators. Sends prompt
 
 ## Quick Start
 
+**1. Clone and install**
 ```bash
 git clone https://github.com/rbestuar/llm-quickcheck
 cd llm-quickcheck
-pip install -r requirements.txt
-cp config.yaml config.local.yaml
-# edit config.local.yaml with your endpoint and Anthropic API key
-python3 benchmark.py --config config.local.yaml
+pip install -e .
 ```
 
-### Run specific checks
+**2. Configure**
 ```bash
-python3 benchmark.py --config config.local.yaml --checks hard_code
-python3 benchmark.py --config config.local.yaml --checks hard_math,hard_code
+cp config.yaml config.local.yaml
 ```
+Open `config.local.yaml` and set:
+- `target.base_url` — your LLM server endpoint (e.g. `http://localhost:11434/v1`)
+- `judge.api_key` — your Anthropic or OpenAI API key (or set `ANTHROPIC_API_KEY` env var)
+
+**3. Run**
+```bash
+quickcheck
+```
+Windows users: `pip install -e .` and `quickcheck` work the same way.
+
+### Run Specific Checks
+```bash
+quickcheck --checks hard_code
+quickcheck --checks hard_math,hard_code
+```
+Available checks: `trap_question`, `tool_calling`, `hard_math`, `hard_code`
 
 ---
 

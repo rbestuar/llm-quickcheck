@@ -350,7 +350,8 @@ def save_results(results, model_name, cfg, model_path=None):
 
 def main():
     parser = argparse.ArgumentParser(description="llm-quickcheck: LLM quality evaluation tool")
-    parser.add_argument("--config", default="config.yaml", help="Path to config file")
+    default_config = "config.local.yaml" if Path("config.local.yaml").exists() else "config.yaml"
+    parser.add_argument("--config", default=default_config, help="Path to config file")
     parser.add_argument("--checks", help="Comma-separated check list (overrides config)")
     args = parser.parse_args()
 
