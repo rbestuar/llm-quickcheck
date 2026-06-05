@@ -318,7 +318,7 @@ def print_results(results, model_name):
     console.print(f"Checks Passed: {checks_passed}/{len(results)}\n")
 
 
-def save_results(results, model_name, cfg):
+def save_results(results, model_name, cfg, model_path=None):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_model = model_name.replace("/", "_").replace(":", "_")
     filename = f"results/{safe_model}_{timestamp}.json"
@@ -326,6 +326,7 @@ def save_results(results, model_name, cfg):
     output = {
         "timestamp": timestamp,
         "model": model_name,
+        "model_path": model_path or cfg["target"].get("model", "unknown"),
         "config": {
             "target_url": cfg["target"]["base_url"],
             "judge_provider": cfg["judge"]["provider"],
@@ -390,7 +391,8 @@ def main():
             })
 
     print_results(results, model)
-    save_results(results, model, cfg)
+    model_path = cfg["target"].get("model_path", cfg["target"].get("model", "unknown"))
+    save_results(results, model, cfg, model_path=model_path)
 
 
 if __name__ == "__main__":
