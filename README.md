@@ -45,6 +45,10 @@ Open `config.local.yaml` and set:
 ```bash
 quickcheck
 ```
+Or the traditional way:
+```bash
+python3 benchmark.py --config config.local.yaml
+```
 Windows users: `pip install -e .` and `quickcheck` work the same way.
 
 ### Run Specific Checks
