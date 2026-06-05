@@ -74,20 +74,8 @@ run:
 ---
 
 ## Sample Output
-
-```
-──────────────── Hard Code Challenges ────────────────
-  ↳ Concurrency bugs, security holes, and algorithmic traps
-
-  Challenge 1/3: threading_race_condition
-    Score: 92/100 — Correctly identifies write outside lock scope...
-  ──────────────────────────────────────────────────
-  Challenge 2/3: sql_injection_subtle
-    Score: 88/100 — Correctly identified f-string interpolation...
-  ──────────────────────────────────────────────────
-  Challenge 3/3: algorithmic_complexity_trap  ⚠ Hidden O(n³) — most models miss the third factor entirely
-    Score: 25/100 — Incorrectly identifies complexity as O(n²)...
-```
+![Run 1](screenshots/bench1.png)
+![Run 2](screenshots/bench2.png)
 
 ---
 
