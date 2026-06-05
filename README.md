@@ -1,98 +1,159 @@
 # llm-quickcheck
 
-A quality-focused benchmark for local and hosted LLMs. Tests reasoning, honesty, and instruction following — not just token speed.
+A local LLM benchmarking tool for developers and homelab operators. Sends prompts to any OpenAI-compatible endpoint, evaluates responses via an LLM judge (Claude Sonnet), and produces scored results with rich terminal output.
 
-Works with any OpenAI-compatible endpoint (llama.cpp, Ollama, LM Studio, vLLM) and uses a frontier model (Claude, GPT-4o) as an impartial judge.
+**Not another academic benchmark.** This is designed to test things that actually matter for agentic and developer workflows — tool calling decisions, code reasoning, math under pressure, and resistance to false premises.
+
+---
+
+## Checks
+
+| Check | Cases | Tests |
+|-------|-------|-------|
+| `trap_question` | 3 | Does the model correct false premises or accept them? |
+| `tool_calling` | 8 | Correct tool selection, argument quality, and no-call discrimination |
+| `hard_math` | 3 | Multi-step math where the obvious approach gives the wrong answer |
+| `hard_code` | 3 | Subtle bugs requiring genuine reasoning — not textbook patterns |
+
+### Notable Problems
+- **Monty Hall 4-door variant** — most models apply 3-door logic and get the wrong probability
+- **Expected value trap** — arithmetic vs geometric mean in multiplicative betting
+- **Hidden O(n³)** — `not in list` check creates a hidden third complexity factor most models miss entirely
+- **Threading race condition** — write outside lock scope despite using a lock
+- **Partial SQL parameterization** — username is safe, order_status is not
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/llm-quickcheck
+git clone https://github.com/rbestuar/llm-quickcheck
 cd llm-quickcheck
 pip install -r requirements.txt
-cp config.yaml config.local.yaml   # edit this, don't commit your keys
-python benchmark.py --config config.local.yaml
+cp config.yaml config.local.yaml
+# edit config.local.yaml with your endpoint and Anthropic API key
+python3 benchmark.py --config config.local.yaml
+```
+
+### Run specific checks
+```bash
+python3 benchmark.py --config config.local.yaml --checks hard_code
+python3 benchmark.py --config config.local.yaml --checks hard_math,hard_code
 ```
 
 ---
 
-## Config
-
-Edit `config.yaml` (or a copy of it):
+## Configuration
 
 ```yaml
 target:
-  base_url: "http://localhost:8080/v1"  # your local server
+  base_url: "http://localhost:11434/v1"  # any OpenAI-compatible endpoint
   api_key: "none"
-  model: "auto"
+  model: "auto"                           # auto-detects from server
 
 judge:
-  provider: "anthropic"          # or "openai" or "local"
-  api_key: ""                    # or set ANTHROPIC_API_KEY env var
+  provider: "anthropic"                   # anthropic, openai, or local
   model: "claude-sonnet-4-20250514"
+  api_key: ""                             # or set ANTHROPIC_API_KEY env var
+
+checks:
+  enabled:
+    - trap_question
+    - tool_calling
+    - hard_math
+    - hard_code
+
+run:
+  timeout_seconds: 120
+  temperature: 0.0
+  max_tokens: 2048
 ```
 
-API keys can also be set as environment variables:
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
+**Cost:** ~5-7 cents per full suite run with Claude Sonnet as judge. Use `claude-haiku-4-5-20251001` for cheap dev runs.
 
 ---
 
-## Tests
-
-| Test | Grading | Description |
-|------|---------|-------------|
-| `sudoku` | Exact match | Solve a hard 9x9 puzzle. Partial credit per correct cell. |
-| `trap_question` | LLM judge | 5 questions with false premises. Model must push back. |
-
-### Coming soon
-- `code_compare` — generate code, diff against reference solution
-- `logic_puzzle` — multi-step deduction (Einstein's riddle style)
-- `constraint_gauntlet` — one task, 6 simultaneous constraints
-- `consistency` — same question 3x, score variance
-
----
-
-## Scoring
-
-- **0–39**: Poor — model accepts false premises, fails logic, or ignores constraints
-- **40–69**: Mediocre — partial correctness, excessive hedging
-- **70–89**: Good — mostly correct with minor issues
-- **90–100**: Excellent — precise, pushes back on falsehoods, follows all constraints
-
-Pass threshold: **≥ 70**
-
----
-
-## Results
-
-Results are saved to `results/` as JSON with timestamp and model name.
+## Sample Output
 
 ```
-results/
-  Qwen3.6-35B_20260604_143200.json
+──────────────── Hard Code Challenges ────────────────
+  ↳ Concurrency bugs, security holes, and algorithmic traps
+
+  Challenge 1/3: threading_race_condition
+    Score: 92/100 — Correctly identifies write outside lock scope...
+  ──────────────────────────────────────────────────
+  Challenge 2/3: sql_injection_subtle
+    Score: 88/100 — Correctly identified f-string interpolation...
+  ──────────────────────────────────────────────────
+  Challenge 3/3: algorithmic_complexity_trap  ⚠ Hidden O(n³) — most models miss the third factor entirely
+    Score: 25/100 — Incorrectly identifies complexity as O(n²)...
 ```
 
 ---
 
-## Adding a New Test
+## Benchmark Results
 
-1. Create `tests/your_test.py` with:
-   - `TEST_ID`, `TEST_NAME`, `GRADING` (`"exact"` or `"llm_judge"`)
-   - `get_prompt()` → returns prompt string
-   - `grade(response_text)` → returns `{"score": int, "passed": bool, "details": str}`
+### Hard Code (most discriminating check)
 
-2. Add a runner function in `benchmark.py` following the pattern of `run_sudoku` or `run_trap_question`
+| Model | threading | sql_injection | O(n³) | Overall |
+|-------|-----------|--------------|-------|---------|
+| Gemma 4 12B Q8_K_XL | 88 | 92 | **85** | **88 ✓** |
+| Gemma 4 12B BF16 | 88 | 92 | **85** | **88 ✓** |
+| Qwen 3.6 27B MTP Q5_K_XL | 92 | 85 | 45 | 74 ✓ |
+| Qwen 3.6 35B Q4_K_M | 92 | 88 | 25 | 68 ✗ |
+| Qwen 3.6 35B Q4_K_XL | 88 | 88 | 25 | 67 ✗ |
 
-3. Add it to `TEST_RUNNERS` dict and `config.yaml`
+The O(n³) trap is the most discriminating problem in the suite. Qwen 35B MoE consistently scores 25/100 regardless of quantization or KV cache precision. Gemma 4 12B correctly identifies the hidden complexity factor every time.
+
+### Tool Calling
+
+| Model | Overall |
+|-------|---------|
+| Qwen 3.6 35B Q4_K_M | 94 ✓ |
+| Gemma 4 12B Q8_K_XL | 89 ✓ |
 
 ---
 
-## Requirements
+## Response Validator
 
-- Python 3.9+
-- `pip install -r requirements.txt`
-- A running LLM server (llama.cpp server, Ollama, etc.)
-- An Anthropic or OpenAI API key for the judge (or use `provider: local`)
+Catches incoherent model output before wasting judge API calls. Models quantized too aggressively (e.g. IQ3_S on MoE architectures) produce garbage — the validator detects this and returns a clean failure state instead of a raw API error.
+
+---
+
+## Judge
+
+The judge uses a `BRUTAL_JUDGE_PREAMBLE` system prompt that penalizes:
+- Excessive hedging
+- Correct answer via wrong method
+- Verbose explanations that miss the key point
+- Code that is syntactically correct but logically wrong
+
+Scores of 90+ are rare and reserved for genuinely exceptional responses.
+
+---
+
+## Roadmap
+- [ ] Web UI / TUI with selectable checks and judge
+- [ ] `--judge` CLI flag for quick haiku/sonnet swap
+- [ ] Side-by-side model comparison mode
+- [ ] More hard checks: long context, instruction following, structured JSON output
+- [ ] Medium difficulty checks available via UI selector
+
+---
+
+## Project Structure
+
+```
+benchmark.py          — main runner
+tests/
+  trap_question.py    — false premise resistance
+  tool_calling.py     — agentic tool use
+  hard_math.py        — brutal math problems
+  hard_code.py        — subtle code bugs
+  medium_math.py      — easier math (UI selector, coming soon)
+  medium_code.py      — easier code (UI selector, coming soon)
+grader/
+  llm_judge.py        — LLM judge with brutal scoring preamble
+config.yaml           — example config
+results/              — JSON output per run
+```
