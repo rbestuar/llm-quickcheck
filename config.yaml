@@ -1,0 +1,29 @@
+# llm-benchmark config
+# Compatible with any OpenAI-compatible endpoint
+
+target:
+  base_url: "http://localhost:8080/v1"   # llama-server, Ollama, LM Studio, etc.
+  api_key: "none"                         # set to real key if using OpenAI/Anthropic
+  model: "auto"                           # "auto" uses whatever the server reports, or set explicitly
+
+judge:
+  provider: "anthropic"                   # "anthropic", "openai", or "local"
+  base_url: "https://api.anthropic.com"  # ignored if provider is "local"
+  api_key: ""                             # ANTHROPIC_API_KEY or OPENAI_API_KEY, or set here
+  model: "claude-sonnet-4-20250514"       # frontier judge model
+
+tests:
+  enabled:
+    - sudoku
+    - trap_question
+  # add more here as they are built:
+  # - code_compare
+  # - logic_puzzle
+  # - constraint_gauntlet
+  # - consistency
+
+run:
+  timeout_seconds: 120      # per-test timeout
+  temperature: 0.0          # use 0 for reproducibility
+  max_tokens: 2048
+  repeat: 1                 # set to 3 for consistency scoring
