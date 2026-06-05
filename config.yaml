@@ -12,15 +12,15 @@ judge:
   api_key: ""                             # ANTHROPIC_API_KEY or OPENAI_API_KEY, or set here
   model: "claude-sonnet-4-20250514"       # frontier judge model
 
-tests:
+checks:
   enabled:
-    - sudoku
     - trap_question
-  # add more here as they are built:
-  # - code_compare
-  # - logic_puzzle
-  # - constraint_gauntlet
-  # - consistency
+    - tool_calling
+    - hard_math
+    - hard_code
+  # optional:
+  # - medium_math
+  # - medium_code
 
 run:
   timeout_seconds: 120      # per-test timeout
