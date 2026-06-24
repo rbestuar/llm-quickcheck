@@ -58,7 +58,8 @@ def call_target(client, model, prompt, run_cfg):
         timeout=run_cfg.get("timeout_seconds", 120),
     )
     elapsed = time.time() - start
-    text = response.choices[0].message.content
+    _msg0 = response.choices[0].message
+    text = (_msg0.content or "").strip() or getattr(_msg0, "reasoning_content", None) or ""
     return text, elapsed
 
 
@@ -168,8 +169,9 @@ def check_tool_calling(client, model, cfg):
                     f"[TOOL CALL] {tc.function.name}({tc.function.arguments})"
                 )
 
-        if msg.content:
-            response_parts.append(f"[TEXT] {msg.content}")
+        _content = (msg.content or "").strip() or getattr(msg, "reasoning_content", None) or ""
+        if _content:
+            response_parts.append(f"[TEXT] {_content}")
 
         response_text = "\n".join(response_parts) if response_parts else "[NO RESPONSE]"
 
